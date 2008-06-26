@@ -1,0 +1,35 @@
+GoogleVisualization
+===================
+
+This plugin currently covers the motion chart (gap minder) google visualization.  You can see an example of one here: http://googlesystem.blogspot.com/2008/03/google-spreadsheets-adds-gadgets.html
+
+
+Example
+=======
+
+In order to use the plugin you simply need to install it into your rails app and then have the following code in a view:
+
+#Model
+class FakeModel < ActiveRecord::Base
+  #this is a fake model and can be replaced with any object
+  #I've defined some fake attribute accessors below
+  attr_accessors :group, :created_at, :x, :y, :z, :more_data_1, :more_data_2
+end
+
+#Controller
+def index
+  @collection = FakeModel.find(:all)
+end
+
+#View (Here is the important stuff)
+<% gap_minder_for(@collection, :width => 500, :height => 300) do |gm| %>
+  <% gm.label("Department Group") {|collection_item| collection_item.group } %>
+  <% gm.time("Created At") {|collection_item| collection_item.created_at } %>
+  <% gm.x("X") {|collection_item| collection_item.x } %>
+  <% gm.y("Y") {|collection_item| collection_item.y } %>
+  <% gm.bubble_size("Z") {|collection_item| collection_item.z } %>
+  <% gm.extra_column("More Data 1") {|collection_item| collection_item.more_data_1 } %>
+  <% gm.extra_column("More Data 2") {|collection_item| collection_item.more_data_2 } %>
+<% end %>
+
+Copyright (c) 2008 [name of plugin creator], released under the MIT license
