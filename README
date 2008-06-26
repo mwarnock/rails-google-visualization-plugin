@@ -21,6 +21,10 @@ def index
   @collection = FakeModel.find(:all)
 end
 
+#Layout
+#In order for this to work you'll need to add some javascript calls in your head tag.  Do this by adding the following line inside your layouts head tag:
+<%= gap_minder_setup %>
+
 #View (Here is the important stuff)
 <% gap_minder_for(@collection, :width => 500, :height => 300) do |gm| %>
   <% gm.label("Department Group") {|collection_item| collection_item.group } %>

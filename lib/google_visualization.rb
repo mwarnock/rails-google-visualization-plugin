@@ -133,6 +133,11 @@ module GoogleVisualization
   end
 
   module Helpers
+    def setup_gap_minder
+      "<script type=\"text/javascript\" src=\"http://www.google.com/jsapi\"></script>\n" +
+      javascript_tag("google.load(\"visualization\", \"1\", {packages:[\"motionchart\"]});")
+    end
+
     def gap_minder_for(collection, options={}, *args, &block)
       gap_minder = GapMinder.new(self, collection, options)
       yield gap_minder
