@@ -141,7 +141,7 @@ module GoogleVisualization
     def gap_minder_for(collection, options={}, *args, &block)
       gap_minder = GapMinder.new(self, collection, options)
       yield gap_minder
-      concat(gap_minder.render, block.binding)
+      concat(gap_minder.render)
     end
   end
 end
