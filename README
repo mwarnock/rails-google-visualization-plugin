@@ -12,7 +12,7 @@ mv vendor/plugins/rails/rails-google-visualization-plugin vendor/plugins/google_
 
 You’ll then need to add the following line in the head tag of your layout:
 
-<%= setup_gap_minder %>
+<%= setup_google_visualizations %>
 
 This is to include all the necessary javascript from google in order to use the visualizations. Once that’s done you’re ready to start. There are wiki pages on each of the visualization this plugin provides.
 
