@@ -21,7 +21,7 @@ module GoogleVisualization
       @rows = []
       @procedure_hash = {:color => ["Department", lambda {|item| label_to_color(@procedure_hash[:label][1].call(item)) }] }
       @size = collection.size
-      @name = "gap_minder_#{self.id.to_s.gsub("-","")}"
+      @name = "gap_minder_#{self.object_id.to_s.gsub("-","")}"
       @labels = {}
       @color_count = 0
     end
@@ -105,6 +105,101 @@ module GoogleVisualization
 
   end
 
+  class AnnotatedTimeLine
+    attr_reader :collection, :options, :helpers, :dates, :lines
+
+    def method_missing(method, *args, &block)
+      if Mappings.columns.include?(method)
+        procedure_hash[method] = [args[0], block]
+      else
+        helpers.send(method, *args, &block)
+      end
+    end
+
+    def initialize(view_instance, dates, options={}, *args)
+      @helpers = view_instance
+      @dates = dates
+      @options = options.reverse_merge({:width => 600, :height => 300})
+      @lines = []
+      @name = "annotated_timeline_#{self.object_id.to_s.gsub("-","")}"
+      @heading_count = 1
+      @headings = ""
+      @data = ""
+      @row_length = 0;
+    end
+
+    def render_head
+      "<div id=\"#{@name}\" style=\"width: #{@options[:width]}px; height: #{@options[:height]}px;\"></div>\n" +
+        "<script type=\"text/javascript\">\n" +
+        "var #{@name}_data = new google.visualization.DataTable();\n"
+    end
+
+    def render_foot
+      "var #{@name} = new google.visualization.AnnotatedTimeLine(document.getElementById('#{@name}'));" +
+        "#{@name}.draw(#{@name}_data, {displayAnnotations: true});\n</script>"
+    end
+
+    def render_headings
+      add_heading('date', 'Date')
+      @lines.each do |line_hash|
+          add_headings_for(line_hash)
+      end
+      @headings
+    end
+
+    def render_data
+      row_count = 0
+      @dates.each_with_index do |date, index|
+        add_row(row_count, 0, date)
+        @lines.each do |line_hash|
+          if line_hash[:collection][index]
+            add_row(row_count, line_hash[:column_start], line_hash[:collection][index].send(line_hash[:method_hash][:value]))
+            add_row(row_count, line_hash[:column_start]+1, line_hash[:collection][index].send(line_hash[:method_hash][:title])) if line_hash[:method_hash][:title] and line_hash[:collection][index].send(line_hash[:method_hash][:title])
+            add_row(row_count, line_hash[:column_start]+2, line_hash[:collection][index].send(line_hash[:method_hash][:notes])) if line_hash[:method_hash][:notes] and line_hash[:collection][index].send(line_hash[:method_hash][:notes])
+          end
+        end
+        row_count += 1
+      end
+      @data
+    end
+
+    def render
+      render_head + render_headings + "#{@name}_data.addRows(#{@row_length});\n" + render_data + render_foot
+    end
+
+    def add_headings_for(line_hash)
+      line_hash[:column_start] = @heading_count
+      add_heading('number',line_hash[:title])
+      add_heading('string', "title#{@heading_count}")
+      add_heading('string', "notes#{@heading_count}")
+      @heading_count += 3
+    end
+
+    def add_heading(type, name)
+      @headings += "#{@name}_data.addColumn('#{type}','#{name}');\n"
+    end
+
+    def add_row(row, column, value)
+      @data += "#{@name}_data.setValue(#{row}, #{column}, #{Mappings.ruby_to_javascript_object(value)});\n"
+    end
+
+    def add_line(title, collection, method_hash)
+      required_methods_supplied? method_hash
+      collection.size > @row_length ? @row_length = collection.size : @row_length
+      @lines.push({:title => title, :collection => collection,:method_hash => method_hash})
+    end
+
+    def required_methods_supplied?(method_hash)
+      if method_hash.has_key?(:value)
+        true
+      else
+        raise "Add Line requires the :value key to be specified in the method_hash"
+      end
+    end
+
+    
+  end
+
   module Mappings
     def self.ruby_to_google_type(type)
       type_hash = {
@@ -135,13 +230,19 @@ module GoogleVisualization
   module Helpers
     def setup_gap_minder
       "<script type=\"text/javascript\" src=\"http://www.google.com/jsapi\"></script>\n" +
-      javascript_tag("google.load(\"visualization\", \"1\", {packages:[\"motionchart\"]});")
+      javascript_tag("google.load(\"visualization\", \"1\", {packages:[\"motionchart\", \"annotatedtimeline\"]});")
     end
 
     def gap_minder_for(collection, options={}, *args, &block)
       gap_minder = GapMinder.new(self, collection, options)
       yield gap_minder
       concat(gap_minder.render)
+    end
+
+    def annotated_timeline_for(dates, options={}, *args, &block)
+      annotated_timeline = AnnotatedTimeLine.new(self, dates, options)
+      yield annotated_timeline
+      concat(annotated_timeline.render)
     end
   end
 end

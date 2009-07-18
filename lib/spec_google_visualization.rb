@@ -48,10 +48,35 @@ describe GoogleVisualization do
       puts @gap_minder.render_rows
     end
 
-    it "should raise and exception" do
+    it "should raise an exception" do
       lambda {@invalid_gap_minder.render_columns}.should raise_error
     end
 
+  end
+
+  describe GoogleVisualization::AnnotatedTimeLine do
+    before do
+      @dates = [1.day.ago.to_date, Date.today]
+      @line_1_collection = [CollectionFixture.new(:label => "Line 1: Test Title 1", :extra => "Line 1: test note 1", :y => 10), CollectionFixture.new(:label => "Test Title 2", :extra => nil, :y => 15)]
+      @line_2_collection = [CollectionFixture.new(:label => "Line 2: Test Title 1", :extra => "Line 2: test note 1", :y => 25), CollectionFixture.new(:label => nil, :extra => "test note 2", :y => 5)]
+
+      @atl = GoogleVisualization::AnnotatedTimeLine.new(self, @dates)
+      @atl.add_line("Line 1", @line_1_collection, :value => :y, :title => :label, :notes => :extra)
+      @atl.add_line("Line 2", @line_2_collection, :value => :y, :title => :label, :notes => :extra)
+    end
+
+    it "should have valid lines" do
+      @atl.lines.size.should be_equal(2)
+      @atl.lines[0][:collection].size.should >= @atl.instance_variable_get(:@row_length)
+      @atl.lines[1][:collection].size.should >= @atl.instance_variable_get(:@row_length)
+      @atl.lines[0][:method_hash][:value].should_not be_nil
+      @atl.lines[1][:method_hash][:value].should_not be_nil
+    end
+
+    it "should render valid columns" do
+      puts "\n"
+      puts @atl.render
+    end
   end
 
   describe GoogleVisualization::Mappings do
