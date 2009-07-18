@@ -11,27 +11,27 @@ class CollectionFixture
 end
 
 describe GoogleVisualization do
-  describe GoogleVisualization::GapMinder do
+  describe GoogleVisualization::MotionChart do
     before do
       @collection = [CollectionFixture.new(:label => "Monkey", :time => Date.today, :x => 5, :y => 10, :bubble_size => 50, :extra => 1, :extra_2 => 2)]
 
-      @gap_minder = GoogleVisualization::GapMinder.new(self, @collection)
-      @gap_minder.label("Department") {|cf| cf.label}
-      @gap_minder.time("Time of Year") {|cf| cf.time}
-      @gap_minder.x("X Axis") {|cf| cf.x}
-      @gap_minder.y("Y Axis") {|cf| cf.y}
-      @gap_minder.bubble_size("Bubble Size") {|cf| cf.bubble_size}
-      @gap_minder.extra_column("Extra") {|cf| cf.extra }
-      @gap_minder.extra_column("Extra 2") {|cf| cf.extra_2 }
+      @motion_chart = GoogleVisualization::MotionChart.new(self, @collection)
+      @motion_chart.label("Department") {|cf| cf.label}
+      @motion_chart.time("Time of Year") {|cf| cf.time}
+      @motion_chart.x("X Axis") {|cf| cf.x}
+      @motion_chart.y("Y Axis") {|cf| cf.y}
+      @motion_chart.bubble_size("Bubble Size") {|cf| cf.bubble_size}
+      @motion_chart.extra_column("Extra") {|cf| cf.extra }
+      @motion_chart.extra_column("Extra 2") {|cf| cf.extra_2 }
 
-      @invalid_gap_minder = GoogleVisualization::GapMinder.new(self, @collection)
+      @invalid_motion_chart = GoogleVisualization::MotionChart.new(self, @collection)
     end
 
     it "should build a valid procedure_hash" do
-      @gap_minder.procedure_hash.should be_instance_of(Hash)
-      @gap_minder.procedure_hash.should_not be_empty
-      @gap_minder.procedure_hash.each do |key,value|
-        @gap_minder.procedure_hash[key].should be_instance_of(Array)
+      @motion_chart.procedure_hash.should be_instance_of(Hash)
+      @motion_chart.procedure_hash.should_not be_empty
+      @motion_chart.procedure_hash.each do |key,value|
+        @motion_chart.procedure_hash[key].should be_instance_of(Array)
         #key.should be_instance_of(Symbol)
 	value[0].should be_instance_of(String)
 	value[1].should be_instance_of(Proc)
@@ -40,16 +40,16 @@ describe GoogleVisualization do
 
     it "should render valid columns" do
       puts "\n"
-      puts @gap_minder.render_columns
+      puts @motion_chart.render_columns
     end
 
     it "should render valid rows" do
       puts "\n"
-      puts @gap_minder.render_rows
+      puts @motion_chart.render_rows
     end
 
     it "should raise an exception" do
-      lambda {@invalid_gap_minder.render_columns}.should raise_error
+      lambda {@invalid_motion_chart.render_columns}.should raise_error
     end
 
   end

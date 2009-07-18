@@ -1,6 +1,6 @@
 # GoogleVisualization
 module GoogleVisualization
-  class GapMinder
+  class MotionChart
 
     attr_reader :collection, :collection_methods, :options, :size, :helpers, :procedure_hash, :name
 
@@ -21,7 +21,7 @@ module GoogleVisualization
       @rows = []
       @procedure_hash = {:color => ["Department", lambda {|item| label_to_color(@procedure_hash[:label][1].call(item)) }] }
       @size = collection.size
-      @name = "gap_minder_#{self.object_id.to_s.gsub("-","")}"
+      @name = "motion_chart_#{self.object_id.to_s.gsub("-","")}"
       @labels = {}
       @color_count = 0
     end
@@ -47,8 +47,8 @@ module GoogleVisualization
 
     def render_columns
       if required_methods_supplied?
-        Mappings.columns.each { |c| @columns << gap_minder_add_column(procedure_hash[c]) }
-        procedure_hash.each { |key, value| @columns << gap_minder_add_column(value) if not Mappings.columns.include?(key) }
+        Mappings.columns.each { |c| @columns << motion_chart_add_column(procedure_hash[c]) }
+        procedure_hash.each { |key, value| @columns << motion_chart_add_column(value) if not Mappings.columns.include?(key) }
         @columns.join("\n")
       end
     end
@@ -56,8 +56,8 @@ module GoogleVisualization
     def render_rows
       if required_methods_supplied?
         collection.each_with_index do |item, index|
-          Mappings.columns.each_with_index {|name,column_index| @rows << gap_minder_set_value(index, column_index, procedure_hash[name][1].call(item)) }
-          procedure_hash.each {|key,value| @rows << gap_minder_set_value(index, key, procedure_hash[key][1].call(item)) unless Mappings.columns.include?(key) }
+          Mappings.columns.each_with_index {|name,column_index| @rows << motion_chart_set_value(index, column_index, procedure_hash[name][1].call(item)) }
+          procedure_hash.each {|key,value| @rows << motion_chart_set_value(index, key, procedure_hash[key][1].call(item)) unless Mappings.columns.include?(key) }
         end
         @rows.join("\n")
       end
@@ -66,18 +66,18 @@ module GoogleVisualization
     def required_methods_supplied?
       Mappings.columns.each do |key|
         unless procedure_hash.has_key? key
-          raise "GapMinder Must have the #{key} method called before it can be rendered"
+          raise "MotionChart Must have the #{key} method called before it can be rendered"
 	end
       end
     end
 
-    def gap_minder_add_column(title_proc_tuple)
+    def motion_chart_add_column(title_proc_tuple)
       title = title_proc_tuple[0]
       procedure = title_proc_tuple[1]
       "data.addColumn('#{google_type(procedure)}','#{title}');\n"
     end
   
-    def gap_minder_set_value(row, column, value)
+    def motion_chart_set_value(row, column, value)
       "data.setValue(#{row}, #{column}, #{Mappings.ruby_to_javascript_object(value)});\n"
     end
   
@@ -228,15 +228,15 @@ module GoogleVisualization
   end
 
   module Helpers
-    def setup_gap_minder
+    def setup_google_visualizations
       "<script type=\"text/javascript\" src=\"http://www.google.com/jsapi\"></script>\n" +
       javascript_tag("google.load(\"visualization\", \"1\", {packages:[\"motionchart\", \"annotatedtimeline\"]});")
     end
 
-    def gap_minder_for(collection, options={}, *args, &block)
-      gap_minder = GapMinder.new(self, collection, options)
-      yield gap_minder
-      concat(gap_minder.render)
+    def motion_chart_for(collection, options={}, *args, &block)
+      motion_chart = MotionChart.new(self, collection, options)
+      yield motion_chart
+      concat(motion_chart.render)
     end
 
     def annotated_timeline_for(dates, options={}, *args, &block)
