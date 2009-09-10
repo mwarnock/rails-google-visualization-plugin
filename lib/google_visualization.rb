@@ -215,7 +215,7 @@ module GoogleVisualization
     def self.ruby_to_javascript_object(value)
       value_hash = {
         :String => lambda {|v| "'#{v}'"},
-        :Date => lambda {|v| "new Date(#{v.to_s.gsub("-",",")})"},
+        :Date => lambda {|v| "new Date(#{[v.year,(v.month.to_i - 1),v.day].join(',')})"},
         :Fixnum => lambda {|v| v },
 	:Float => lambda {|v| v }
       }
