@@ -35,7 +35,7 @@ module GoogleVisualization
         "var data = new google.visualization.DataTable();\n" +
         "data.addRows(#{size});\n" +
         render_columns +
-	render_rows +
+        render_rows +
         "var #{name} = new google.visualization.MotionChart(document.getElementById('#{name}'));\n" +
         "#{name}.draw(data, {width: #{options[:width]}, height: #{options[:height]}});"
       end
@@ -122,7 +122,7 @@ module GoogleVisualization
       @dates = dates
       @options = options.reverse_merge({:width => 600, :height => 300})
       @lines = []
-      @name = "line_chart_#{self.object_id.to_s.gsub("-","")}"
+      @name = "chart_#{self.object_id.to_s.gsub("-","")}"
       @heading_count = 1
       @headings = ""
       @data = ""
@@ -142,7 +142,7 @@ module GoogleVisualization
     end
 
     def render_headings
-      #this should possibly be add_heading('date','Date')
+      #This way the charts can accept strings as well as dates (not the annotated one though)
       if @dates.first.is_a? String
         add_heading('string', 'Date')
       else
@@ -178,6 +178,11 @@ module GoogleVisualization
       line_hash[:column_start] = @heading_count
       add_heading('number',line_hash[:title])
       @heading_count += 1
+      if @google_chart_name == 'AnnotatedTimeLine'
+        add_heading('string', "title#{@heading_count}")
+        add_heading('string', "notes#{@heading_count}")
+        @heading_count += 2
+      end
     end
 
     def add_heading(type, name)
@@ -188,8 +193,7 @@ module GoogleVisualization
       @data += "#{@name}_data.setValue(#{row}, #{column}, #{Mappings.ruby_to_javascript_object(value)});\n"
     end
 
-    # allow the method has to be nil, this means that we can pass an array
-    def add_line(title, collection, method_hash=nil)
+    def add_line(title, collection)
       required_methods_supplied? method_hash
       collection.size > @row_length ? @row_length = collection.size : @row_length
       @lines.push({:title => title, :collection => collection,:method_hash => method_hash})
