@@ -19,10 +19,13 @@ First of all, your app's header has to include the necessary js files. This can 
 -- application.html.erb (layout)
 <%= setup_google_visualizations('linechart','barchart') %>
 
-into your layout or by adding the following into the view that will render your graphs.
+into your layout or by adding the following into the layout and the view that will render your graphs.
 
--- graph.html.erb
+
+-- application.html.erb (layout)
 <%= yield :head %>
+
+-- graph.html.erb (view with charts)
 <% content_for(:head) do %>
   <%= setup_google_visualizations('linechart', 'annotatedtimeline', 'piechart') %>
 <% end %>
