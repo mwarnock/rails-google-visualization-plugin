@@ -95,7 +95,7 @@ module GoogleVisualization
         @labels[hashed_label]
       else
         @color_count += 1
-	@labels[hashed_label] = @color_count
+      	@labels[hashed_label] = @color_count
       end
     end
 
@@ -105,8 +105,9 @@ module GoogleVisualization
 
   end
 
-  class AnnotatedTimeLine
-    attr_reader :collection, :options, :helpers, :dates, :lines
+  class Chart
+    attr_reader :collection, :options, :helpers, :dates, :lines, :google_chart_name
+    attr_writer :google_chart_name
 
     def method_missing(method, *args, &block)
       if Mappings.columns.include?(method)
@@ -121,11 +122,12 @@ module GoogleVisualization
       @dates = dates
       @options = options.reverse_merge({:width => 600, :height => 300})
       @lines = []
-      @name = "annotated_timeline_#{self.object_id.to_s.gsub("-","")}"
+      @name = "line_chart_#{self.object_id.to_s.gsub("-","")}"
       @heading_count = 1
       @headings = ""
       @data = ""
       @row_length = 0;
+      @google_chart_name = 'LineChart' #default to linechart
     end
 
     def render_head
@@ -135,12 +137,17 @@ module GoogleVisualization
     end
 
     def render_foot
-      "var #{@name} = new google.visualization.AnnotatedTimeLine(document.getElementById('#{@name}'));" +
-        "#{@name}.draw(#{@name}_data, {displayAnnotations: true});\n</script>"
+      "var #{@name} = new google.visualization.#{@google_chart_name}(document.getElementById('#{@name}'));\n" +
+        "#{@name}.draw(#{@name}_data, {#{Mappings.ruby_to_javascript_options(@options)}});\n</script>"
     end
 
     def render_headings
-      add_heading('date', 'Date')
+      #this should possibly be add_heading('date','Date')
+      if @dates.first.is_a? String
+        add_heading('string', 'Date')
+      else
+        add_heading('date', 'Date')
+      end
       @lines.each do |line_hash|
           add_headings_for(line_hash)
       end
@@ -170,9 +177,7 @@ module GoogleVisualization
     def add_headings_for(line_hash)
       line_hash[:column_start] = @heading_count
       add_heading('number',line_hash[:title])
-      add_heading('string', "title#{@heading_count}")
-      add_heading('string', "notes#{@heading_count}")
-      @heading_count += 3
+      @heading_count += 1
     end
 
     def add_heading(type, name)
@@ -183,7 +188,8 @@ module GoogleVisualization
       @data += "#{@name}_data.setValue(#{row}, #{column}, #{Mappings.ruby_to_javascript_object(value)});\n"
     end
 
-    def add_line(title, collection, method_hash)
+    # allow the method has to be nil, this means that we can pass an array
+    def add_line(title, collection, method_hash=nil)
       required_methods_supplied? method_hash
       collection.size > @row_length ? @row_length = collection.size : @row_length
       @lines.push({:title => title, :collection => collection,:method_hash => method_hash})
@@ -196,8 +202,6 @@ module GoogleVisualization
         raise "Add Line requires the :value key to be specified in the method_hash"
       end
     end
-
-    
   end
 
   module Mappings
@@ -225,12 +229,40 @@ module GoogleVisualization
     def self.columns
       [:label, :time, :x, :y, :color, :bubble_size]
     end
+
+    # converts {:my_title=>'title', :my_width=>100} to "myTitle: 'title', myWidth: 100"
+    def self.ruby_to_javascript_options(options)
+      result = []
+      options.keys.map do |i|
+        if options[i].is_a? String
+          result << "#{i.to_s.camelize(:lower)}: '#{options[i]}'"
+        elsif options[i].is_a? Array
+          array_string = options[i].map{|j| "'#{j}'"}.join(",")
+          result << "#{i.to_s.camelize(:lower)}: [#{array_string}]"
+        elsif options[i].is_a? Hash
+          h = options[i]
+          args = options[i].keys.map do |j|
+            if h[j].is_a? String
+              "#{j}: '#{h[j]}'"
+            else
+              "#{j}: #{h[j]}"
+            end
+          end
+          args = args.join(", ")
+          result << "#{i.to_s.camelize(:lower)}: {#{args}}"
+        else
+          result << "#{i.to_s.camelize(:lower)}: #{options[i]}"
+        end
+      end
+      result.join(", ")
+    end
   end
 
   module Helpers
-    def setup_google_visualizations
+    def setup_google_visualizations(*packages)
+      packages_string = packages.map{|i| "\"#{i}\""}.join(",") # produces "\"one\",\"two\""
       "<script type=\"text/javascript\" src=\"http://www.google.com/jsapi\"></script>\n" +
-      javascript_tag("google.load(\"visualization\", \"1\", {packages:[\"motionchart\", \"annotatedtimeline\"]});")
+      javascript_tag("google.load(\"visualization\", \"1\", {packages:[#{packages_string}]});")
     end
 
     def motion_chart_for(collection, options={}, *args, &block)
@@ -240,9 +272,32 @@ module GoogleVisualization
     end
 
     def annotated_timeline_for(dates, options={}, *args, &block)
-      annotated_timeline = AnnotatedTimeLine.new(self, dates, options)
-      yield annotated_timeline
-      concat(annotated_timeline.render)
+      chart_for('AnnotatedTimeLine',dates,options, *args, &block)
     end
+
+    def line_chart_for(dates,options={}, *args, &block)
+      chart_for('LineChart',dates,options, *args, &block)
+    end
+
+    def pie_chart_for(dates,options={}, *args, &block)
+      chart_for('PieChart',dates,options, *args, &block)
+    end
+
+    def bar_chart_for(dates,options={}, *args, &block)
+      chart_for('BarChart',dates,options, *args, &block)
+    end
+
+    def column_chart_for(dates,options={}, *args, &block)
+      chart_for('ColumnChart',dates,options, *args, &block)
+    end
+
+    def chart_for(google_chart_name,dates,options={}, *args, &block)
+      chart = Chart.new(self,dates,options)
+      chart.google_chart_name = google_chart_name
+      yield chart
+      concat(chart.render)
+
+    end
+
   end
 end

@@ -1,26 +1,70 @@
 GoogleVisualization
 ===================
 
-This plugin currently covers the following visualizations: MotionChart, Annotated Time Line
+This plugin currently covers the following visualizations: MotionChart, Annotated Time Line, LineChart, PieChart, ColumnChart and BarChart.
+
+Max Warnock (http://github.com/mwarnock) wrote the original code which I've altered slightly so that the plugin implements a few extra visualization types.
 
 Installation
 ============
 If you are unfamiliar with how to install rails plugins you’ll want to look here (http://nubyonrails.com/articles/the-complete-guide-to-rails-plugins-part-i) for guidance. To install it run this from the root of your rails app:
 
-ruby script/plugins install git://github.com/mwarnock/rails-google-visualization-plugin.git
+ruby script/plugins install git://github.com/geirfreysson/rails-google-visualization-plugin.git
 mv vendor/plugins/rails/rails-google-visualization-plugin vendor/plugins/google_visualization #It needs to be renamed for the sake of rails auto loading
 
-You’ll then need to add the following line in the head tag of your layout:
+Usage
+=====
+First of all, your app's header has to include the necessary js files. This can be done either by adding
 
-<%= setup_google_visualizations %>
+-- application.html.erb (layout)
+<%= setup_google_visualizations('linechart','barchart') %>
 
-This is to include all the necessary javascript from google in order to use the visualizations. Once that’s done you’re ready to start. There are wiki pages on each of the visualization this plugin provides.
+into your layout or by adding the following into the view that will render your graphs.
 
+-- graph.html.erb
+<%= yield :head %>
+<% content_for(:head) do %>
+  <%= setup_google_visualizations('linechart', 'annotatedtimeline', 'piechart') %>
+<% end %>
 
-Road Map
-========
+Not that you pass the name of the visualizations you are using as parameters to the setup function, according to what goole calls them (see the google visualization docs).
 
-Though the road could be as long as google's visualization library I have little motivation to tackle the whole of it.  I already use and have built some extensive additions onto a product called ChartDirector.  The covers the majority of my needs for visualization, but google is coming out with some pretty cool widgets.  Gap Minder was the first that made me salivate long enough to write this plugin.  As you see new google visualization widgets come out that blow your mind I'd be happy to hear from you and will, depending upon where it registers on my awesome-o-meter, add them to this plugin.
+I prefer the second method so that the js is only fetched if the user goes to whatever parts of the app has charts, but if this is every other page, you might as well include it in the layout.
+
+Once the js files have been included, this is an example of code to put into your view to create a chart:
+
+<% dates = [Date.new(2009,1,1),Date.new(2009,2,1),Date.new(2009,3,1),Date.new(2009,4,1)] %>
+<% line1= [1,2,3,4] %>
+<% line2= [2,3,4,5] %>
+<% line3= [1,1,4,5] %>
+
+<% line_chart_for @dates, :width=>1000, :height=>400, :min=>4, :axis_color=>'#cccc',
+                            :axis_font_size=>'12', :axis_fontcolor=>'#cccccc',
+                            :legend_font_size=>'12', :title_font_size=>'12',
+                            :colors=>["#216DE1","#D0221B","#8BC026"] do |chart| %>
+  <% chart.add_line("first line",line1,:value=>:to_f) %>
+  <% chart.add_line("second line",line2,:value=>:to_f) %>
+  <% chart.add_line("third line",line3,:value=>:to_f) %>
+<% end %>
+
+Note that for each chart you can pass any options that are supported by whichever Google visualization you are
+using. Supply the options with the ruby underscore convention and they are converted to camelCase.
+
+The pie charts take slightly different data in the sense that for each pie, there is only one
+'column'.
+
+Example:
+
+<% @categories = ["Blood", "Sweat", "Tears"] %>
+<% line1= [4,3,2] %>
+
+<% pie_chart_for @dates, :width=>400, :height=>400, :title=>'What it takes' do |chart| %>
+  <% chart.add_line("the line",line1,:value=>:to_i) %>
+<% end %>
+
+Finally, note that PieChart, LineChart, BarChart and ColumnChart can all take strings
+instead of dates for the value of their x-axis, but AnnotatedTimeLine expects dates.
+
 
 Additional Information
 ======================
