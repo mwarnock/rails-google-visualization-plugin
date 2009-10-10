@@ -163,6 +163,8 @@ module GoogleVisualization
             add_row(row_count, line_hash[:column_start], line_hash[:collection][index].send(line_hash[:method_hash][:value]))
             add_row(row_count, line_hash[:column_start]+1, line_hash[:collection][index].send(line_hash[:method_hash][:title])) if line_hash[:method_hash][:title] and line_hash[:collection][index].send(line_hash[:method_hash][:title])
             add_row(row_count, line_hash[:column_start]+2, line_hash[:collection][index].send(line_hash[:method_hash][:notes])) if line_hash[:method_hash][:notes] and line_hash[:collection][index].send(line_hash[:method_hash][:notes])
+          else
+            add_row(row_count, line_hash[:column_start], 0)
           end
         end
         row_count += 1
@@ -193,7 +195,7 @@ module GoogleVisualization
       @data += "#{@name}_data.setValue(#{row}, #{column}, #{Mappings.ruby_to_javascript_object(value)});\n"
     end
 
-    def add_line(title, collection)
+    def add_line(title, collection, method_hash)
       required_methods_supplied? method_hash
       collection.size > @row_length ? @row_length = collection.size : @row_length
       @lines.push({:title => title, :collection => collection,:method_hash => method_hash})
@@ -239,23 +241,27 @@ module GoogleVisualization
       result = []
       options.keys.map do |i|
         if options[i].is_a? String
-          result << "#{i.to_s.camelize(:lower)}: '#{options[i]}'"
+          if options[i] =~ /Date/
+            result << "'#{i.to_s.camelize(:lower)}': #{options[i]}"
+          else
+            result << "'#{i.to_s.camelize(:lower)}': '#{options[i]}'"
+          end
         elsif options[i].is_a? Array
           array_string = options[i].map{|j| "'#{j}'"}.join(",")
-          result << "#{i.to_s.camelize(:lower)}: [#{array_string}]"
+          result << "'#{i.to_s.camelize(:lower)}': [#{array_string}]"
         elsif options[i].is_a? Hash
           h = options[i]
           args = options[i].keys.map do |j|
             if h[j].is_a? String
-              "#{j}: '#{h[j]}'"
+              "'#{j}': '#{h[j]}'"
             else
-              "#{j}: #{h[j]}"
+              "'#{j}': #{h[j]}"
             end
           end
           args = args.join(", ")
-          result << "#{i.to_s.camelize(:lower)}: {#{args}}"
+          result << "'#{i.to_s.camelize(:lower)}': {#{args}}"
         else
-          result << "#{i.to_s.camelize(:lower)}: #{options[i]}"
+          result << "'#{i.to_s.camelize(:lower)}': #{options[i]}"
         end
       end
       result.join(", ")
@@ -266,7 +272,7 @@ module GoogleVisualization
     def setup_google_visualizations(*packages)
       packages_string = packages.map{|i| "\"#{i}\""}.join(",") # produces "\"one\",\"two\""
       "<script type=\"text/javascript\" src=\"http://www.google.com/jsapi\"></script>\n" +
-      javascript_tag("google.load(\"visualization\", \"1\", {packages:[#{packages_string}]});")
+      javascript_tag("google.load(\"visualization\", \"1\", {packages:[#{packages_string}], 'language':'is'});")
     end
 
     def motion_chart_for(collection, options={}, *args, &block)
@@ -299,7 +305,7 @@ module GoogleVisualization
       chart = Chart.new(self,dates,options)
       chart.google_chart_name = google_chart_name
       yield chart
-      concat(chart.render)
+      chart.render
 
     end
 
