@@ -16,6 +16,7 @@ module GoogleVisualization
       @helpers = view_instance
       @collection = collection
       @collection_methods = collection_methods
+      @draw_zeros = options.delete(:draw_zeros) || false
       @options = options.reverse_merge({:width => 600, :height => 300})
       @columns = []
       @rows = []
@@ -160,7 +161,8 @@ module GoogleVisualization
         add_row(row_count, 0, date)
         @lines.each do |line_hash|
           if line_hash[:collection][index]
-            add_row(row_count, line_hash[:column_start], line_hash[:collection][index].send(line_hash[:method_hash][:value]))
+            add_row(row_count, line_hash[:column_start], get_value(line_hash,index))
+            #add_row(row_count, line_hash[:column_start], line_hash[:collection][index].send(line_hash[:method_hash][:value]))
             add_row(row_count, line_hash[:column_start]+1, line_hash[:collection][index].send(line_hash[:method_hash][:title])) if line_hash[:method_hash][:title] and line_hash[:collection][index].send(line_hash[:method_hash][:title])
             add_row(row_count, line_hash[:column_start]+2, line_hash[:collection][index].send(line_hash[:method_hash][:notes])) if line_hash[:method_hash][:notes] and line_hash[:collection][index].send(line_hash[:method_hash][:notes])
           else
@@ -170,6 +172,19 @@ module GoogleVisualization
         row_count += 1
       end
       @data
+    end
+
+    def get_value(line_hash,index)
+      if line_hash[:method_hash].empty?
+        result = line_hash[:collection][index]
+      else
+        result =line_hash[:collection][index].send(line_hash[:method_hash][:value])
+      end
+      if !@draw_zeroes && result.to_i == 0
+        nil
+      else
+        result
+      end
     end
 
     def render
@@ -195,8 +210,7 @@ module GoogleVisualization
       @data += "#{@name}_data.setValue(#{row}, #{column}, #{Mappings.ruby_to_javascript_object(value)});\n"
     end
 
-    def add_line(title, collection, method_hash)
-      required_methods_supplied? method_hash
+    def add_line(title, collection, method_hash={})
       collection.size > @row_length ? @row_length = collection.size : @row_length
       @lines.push({:title => title, :collection => collection,:method_hash => method_hash})
     end
@@ -227,9 +241,13 @@ module GoogleVisualization
         :String => lambda {|v| "'#{v}'"},
         :Date => lambda {|v| "new Date(#{[v.year,(v.month.to_i - 1),v.day].join(',')})"},
         :Fixnum => lambda {|v| v },
-	:Float => lambda {|v| v }
+        :Float => lambda {|v| v }
       }
-      value_hash[value.class.to_s.to_sym].call(value)
+      if value.nil?
+        "null"
+      else
+        value_hash[value.class.to_s.to_sym].call(value)
+      end
     end
 
     def self.columns
@@ -305,8 +323,8 @@ module GoogleVisualization
       chart = Chart.new(self,dates,options)
       chart.google_chart_name = google_chart_name
       yield chart
-      chart.render
-
+      #chart.render
+      concat(chart.render)
     end
 
   end
