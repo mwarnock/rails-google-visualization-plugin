@@ -290,7 +290,7 @@ module GoogleVisualization
     def setup_google_visualizations(*packages)
       packages_string = packages.map{|i| "\"#{i}\""}.join(",") # produces "\"one\",\"two\""
       "<script type=\"text/javascript\" src=\"http://www.google.com/jsapi\"></script>\n" +
-      javascript_tag("google.load(\"visualization\", \"1\", {packages:[#{packages_string}], 'language':'is'});")
+      javascript_tag("google.load(\"visualization\", \"1\", {packages:[#{packages_string}]});")
     end
 
     def motion_chart_for(collection, options={}, *args, &block)
